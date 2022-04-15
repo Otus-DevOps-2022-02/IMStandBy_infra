@@ -1,0 +1,40 @@
+#cloud-config
+users:
+  - name: yc-user
+    shell: /bin/bash
+    ssh-authorized-keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsj9R2L0BaEi9XO5jL5j1t4+BNM234fQFfNglrjmRTm yc-user
+write_files:
+  - path: /home/yc-user/install_ruby.sh
+    permissions: "770"
+    content: |
+        #!/bin/bash
+        apt update
+        apt install -y ruby-full ruby-bundler build-essential
+        ruby -v
+        bundler -v
+  - path: /home/yc-user/install_mongodb.sh
+    permissions: "770"
+    content: |
+        #!/bin/bash
+        wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+        echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+        apt-get update
+        apt-get install -y mongodb-org
+        systemctl start mongod
+        systemctl enable mongod
+        systemctl status mongod
+  - path: /home/yc-user/deploy.sh
+    permissions: "770"
+    content: |
+        #!/bin/bash
+        apt-get install -y git
+        apt-get update
+        git clone -b monolith https://github.com/express42/reddit.git
+        cd reddit && bundle install
+        puma -d
+        ps aux | grep puma
+runcmd:
+        - sudo /home/yc-user/install_ruby.sh
+        - sudo /home/yc-user/install_mongodb.sh
+        - sudo /home/yc-user/deploy.sh
